@@ -29,6 +29,7 @@
 #define BAR_HEIGHT 15
 
 int   getMemPercent();
+int getDiskPercent();
 size_t get_num_cpus();
 void get_cp_times(long* pcpu, size_t count);
 double get_cpu_usage(long* current, long* previous);
@@ -72,6 +73,9 @@ main(void)
   int mem_percent;
   char *mem_bar;
 
+  int disk_percent;
+  char *disk_bar;
+
   char *fg_color = "#EEEEEE";
   char cpu_color[8];
 
@@ -88,7 +92,9 @@ main(void)
     {
 
       mem_percent = getMemPercent();
-      mem_bar = hBar(mem_percent, 20, 9,  "#FF0000", "#444444");
+      mem_bar = hBar(mem_percent, 20, 9,  "#006CAD", "#444444");
+      disk_percent = getDiskPercent();
+      disk_bar = hBar(disk_percent, 20, 9, "#006CAD", "#444444");
       getTemperature(temp);
       datetime = getDateTime();
       vol = getVolume();
@@ -104,7 +110,7 @@ main(void)
       int ret = snprintf(
                status,
                MSIZE,
-               "^c%s^ [VOL %d%%] [CPU ^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM ^f1^%s^f20^^c%s^ %d%%] [TEMP %sC ^c%s^] %s ",
+               "^c%s^ [VOL %d%%] [CPU ^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM ^f1^%s^f20^^c%s^ %d%%] [DISK ^f1^%s^f20^^c%s^ %d%%] [TEMP %sC ^c%s^] %s ",
                fg_color,
                vol,
                cpu_bar[0],
@@ -115,6 +121,9 @@ main(void)
                mem_bar,
                fg_color,
                mem_percent,
+               disk_bar,
+               fg_color,
+               disk_percent,
                temp,
                fg_color, datetime
                );
@@ -244,6 +253,28 @@ getMemPercent()
   float avail = (float)(pagesize*vmdata.t_free);
   float free = (float)((physmem - avail)/physmem * 100);
   return free;
+}
+
+int
+getDiskPercent()
+{
+  FILE *fp;
+  char path[1035];
+
+  fp = popen("df -hl | grep 'tank/ROOT/initial' | awk '{print $5}' | sed 's/%//g'", "r");
+  if (fp == NULL)
+  {
+    printf("failed to get disk size\n");
+    return 0;
+  }
+
+  int ret;
+  while(fgets(path, sizeof(path)-1, fp) != NULL) {
+    sscanf(path, "%d", &ret);
+  }
+
+  pclose(fp);
+  return ret;
 }
 
 size_t
